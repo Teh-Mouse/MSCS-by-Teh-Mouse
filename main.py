@@ -1,3 +1,12 @@
+"""
+ICS4U - Software Development Project
+Merivale Secondary Calendar System
+Formerly by Emin Suhonjic, Osaid El Dali, Justin Yuan
+Now by Justin Yuan
+Program to display the current school day and any special
+events corresponding to the Merivale High School calendar.
+"""
+
 # Libraries #
 import pandas as pd
 import numpy as np
@@ -27,7 +36,7 @@ def fetchDay():
     print(columnseries)
     abcdef=rowseries[0][0],columnseries[1][0]
     print(abcdef)
-    dayof=df.iloc[abcdef[0]+1,abcdef[1]] # differnet row (1 under), same column
+    dayof=df.iloc[abcdef[0]+1,abcdef[1]] # different row (1 under), same column
 
     return dayof
 
@@ -43,7 +52,7 @@ class testGrid(GridLayout):
         super(testGrid,self).__init__(**kwargs)
         self.cols = 2 # how many columns the grid has
         self.rows=2
-        self.datenow=Label(text="The date is \n"+ formatted_date)
+        self.datenow=Label(text="The date today is \n"+ formatted_date)
         self.add_widget(self.datenow)
         auugh=fetchDay()
         print(auugh)
