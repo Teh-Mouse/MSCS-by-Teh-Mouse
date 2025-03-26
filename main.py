@@ -19,6 +19,8 @@ from kivy.app import App
 from kivy.uix.label import Label
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.textinput import TextInput
+from kivy.uix.popup import Popup
+from kivy.uix.button import Button
 
 date = datetime.datetime.now()
 
@@ -50,16 +52,32 @@ class testGrid(GridLayout):
         formatted_date = str((str(date.year) + "/" + str(date.month) + "/" + str(date.day)))
        # fetchDay(datetime.date.month,datetime.date.day)
         super(testGrid,self).__init__(**kwargs)
-        self.cols = 2 # how many columns the grid has
+        self.cols = 5 # how many columns the grid has
         self.rows=2
+
         self.datenow=Label(text="The date today is \n"+ formatted_date)
         self.add_widget(self.datenow)
+
         auugh=fetchDay()
-        print(auugh)
+        #print(auugh)
         self.daynow = Label(text=f"Today is: day {auugh}") # Multiline false so you cant add new lines
         self.add_widget(self.daynow)
-        self.add_widget(TextInput(text="Text Box:"))
+        
+        self.calendarholder=GridLayout(cols=5,rows=8)
+        templist="MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"
+        for x in templist:
+            self.calendarholder.add_widget(Label(text=x))
+        self.calendarholder.add_widget(Label(text='Hello world'))
+        for i in range(30-1+1):
+            self.calendarholder.add_widget(Label(text=f"Date {i+1}"))
+        self.hello=Popup(title='Test calendar popup (month)', content=self.calendarholder, size_hint=(None, None), size=(1000, 500))
+        self.calbutton=Button(text="click here")
+        self.calbutton.bind(on_press=self.hello.open)
+        self.add_widget(self.calbutton)
 
+        self.add_widget(TextInput(text="Text Box:"))
+        for i in range(3):
+            self.add_widget(Label(text="Placeholder"))
 # App Runtime #
 
 class MyApp(App):
