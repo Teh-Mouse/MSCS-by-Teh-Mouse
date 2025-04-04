@@ -1,0 +1,23 @@
+import csv
+import os
+
+data_file="test.csv"
+
+def load_data(self):
+    data=[]
+    if os.path.exists(self.data_file):
+        with open(self.data_file, "r", newline="") as f:
+            reading=csv.reader(f)
+            for row in reading:
+                data.append(row)
+        return data
+        
+def save_data(self, data):
+    with open(self.data_file, "w", newline="") as f:
+        writing=csv.writer(f)
+        writing.writerows(data)
+        
+value1=input("Enter 1st value: ")
+value2=input("Enter 2nd value: ")
+
+save_data(value1,value2)
