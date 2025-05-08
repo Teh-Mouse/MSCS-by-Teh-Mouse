@@ -23,10 +23,20 @@ from kivy.uix.popup import Popup
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.dropdown import DropDown
-from kivy.uix.boxlayout import BoxLayout  # Import BoxLayout
+from kivy.uix.boxlayout import BoxLayout
+from kivy.utils import get_color_from_hex
 
 # Load the KV file
 kv_file = Builder.load_string("""
+<CalendarLabel>:
+    background_color: 0.7, 0.7, 0.7, 1
+    canvas.before:
+        Color:
+            rgba: self.background_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
 <testGrid>:
     cols: 1
     rows: 1
@@ -35,32 +45,33 @@ kv_file = Builder.load_string("""
         padding: 50
         spacing: 25
 
-        Label:
+        CalendarLabel:
             id: datenow
             text: "The date today is \\n"
-        Label:
+            font_size: 32
+        CalendarLabel:
             id: daynow
-            text: "Today is: day "
-        Label:
-            text: "Text Box:" # Changed from Label
-        Label:
-            text: "Placeholder"
+            text: "Today is: Day "
+            font_size: 32
         Button:
             id: calbutton
-            text: "click here"
+            text: "Display Calendar"
             size_hint_x: 1
             size_hint_y: None
             height: 50
+            background_color: 0.7, 0.7, 0.7, 1
 """)
+
+
+class CalendarLabel(Label):
+    pass
+
 
 date = datetime.datetime.now()
 
 
 def fetchDay(month=None, day=None):
-    """
-    Function to find the corresponding school day to the current date.
-    Can optionally take a specific month and day.
-    """
+    """Function to find the corresponding school day to the current date."""
     global df
     global monthslice
     global dayslice
@@ -70,88 +81,95 @@ def fetchDay(month=None, day=None):
     df = pd.read_csv(
         'https://docs.google.com/spreadsheets/d/e/2PACX-1vSEmrxJzhnV_wvnd2GkiyuVoBviY8kZOhGhBZd7EsraGpzn-9wmCycgWZXAr8tYXSJiBM2GQ-jeLvIt/pub?gid=0&single=true&output=csv',
         dtype={"MONTH": np.str_})
-    print(df)
     rowseries = np.where(df["MONTH"] == str(use_month))
-    print(f"rowseries:{rowseries}")
     monthslice = df.iloc[rowseries[0]]
     dayslice = df.iloc[rowseries[0] + 1]
-    print(monthslice)
-    print(dayslice)
-    columnseries = np.where(
-        monthslice.astype(np.str_) == str(use_day))
-    print(f"columnseries: {columnseries}")
-    if columnseries[0].size > 0 and columnseries[1].size > 0:  # check to avoid error if no match
+    columnseries = np.where(monthslice.astype(np.str_) == str(use_day))
+    if columnseries[0].size > 0 and columnseries[1].size > 0:
         abcdef = rowseries[0][0], columnseries[1][0]
-        print(abcdef)
         dayof = df.iloc[abcdef[0] + 1, abcdef[1]]
     else:
-        dayof = "No Day Found"  # Default Value
+        dayof = "No Day Found"
     return dayof
 
 
 class testGrid(Screen):
-    """
-    Main class to create the user interface.
-    """
+    """Main class to create the user interface."""
 
     def __init__(self, **kwargs):
-        formatted_date = str((str(date.year) + "/" + str(date.month) + "/" + str(date.day)))
         super(testGrid, self).__init__(**kwargs)
-
-        self.datenow = self.ids.datenow  # Get the instance using ID
-        self.datenow.text = "The date today is \n" + formatted_date
-
-        auugh = fetchDay()
+        formatted_date = f"{date.year}/{date.month}/{date.day}"
+        self.datenow = self.ids.datenow
+        self.datenow.text = f"The date today is \n{formatted_date}"
         self.daynow = self.ids.daynow
-        self.daynow.text = f"Today is: Day {auugh}"
+        self.daynow.text = f"Today is: Day {fetchDay()}"
 
-        # Initialize the calendar holder and baton button
+        # Initialize calendar
+        self.current_month = date.month
         self.calendarholder = GridLayout(cols=1, rows=2, size_hint_y=None, height=400)
-        self.baton = Button(text="Select Month", size_hint_y=None, height=50)
+        self.baton = Button(text="Select Month", size_hint_y=None, height=50, background_color=(0.7, 0.7, 0.7, 1))
         self.calendarholder.add_widget(self.baton)
 
-        # Create initial calendar popup for current month
-        self.current_month = date.month
         self.create_calendar_popup(self.current_month)
-
-        # Create dropdown with school year months
         self.create_month_dropdown()
 
-        self.calbutton = self.ids.calbutton
-        self.calbutton.bind(on_release=self.monthdisplay.open)
+        self.ids.calbutton.bind(on_release=self.monthdisplay.open)
+
+    def format_day_value(self, value):
+        """Format day values to handle NaN and convert to integers"""
+        if pd.isna(value):
+            return ""
+        try:
+            # Convert to integer if it's a number
+            return str(int(float(value)))
+        except (ValueError, TypeError):
+            return str(value)
 
     def create_calendar_popup(self, month):
-        """Create or update the calendar popup for the specified month"""
+        """Create or update the calendar popup for the specified month."""
         self.current_month = month
-
-        # Fetch data for the specified month
         monthslice = self.get_month_data(month)
         dayslice = self.get_day_data(month)
 
-        # Clear previous calendar content if it exists
         if hasattr(self, 'calendar_content'):
             self.calendarholder.remove_widget(self.calendar_content)
 
-        # Create new calendar content
-        self.calendar_content = GridLayout(cols=5, rows=8)
-        templist = "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"
-        for x in templist:
-            self.calendar_content.add_widget(Label(text=x))
+        # Create calendar grid with grey background
+        self.calendar_content = GridLayout(cols=5, rows=8, spacing=5, padding=5)
 
+        # Add weekday headers
+        for day in ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"]:
+            day_label = CalendarLabel(text=day, bold=True, font_size=24)
+            self.calendar_content.add_widget(day_label)
+
+        # Add calendar days
         for i in range(len(monthslice.iloc[0]) - 1):
-            self.calendar_content.add_widget(
-                Label(text=f"{monthslice.iloc[0][i + 1]}\nDay {dayslice.iloc[0][i + 1]}"))
+            day_num = self.format_day_value(monthslice.iloc[0][i + 1])
+            day_value = self.format_day_value(dayslice.iloc[0][i + 1])
 
-        # Add the calendar content above the baton button
+            # Skip if both day_num and day_value are empty
+            if not day_num and not day_value:
+                day_label = CalendarLabel(text="", font_size=20)
+            else:
+                day_text = f"{day_num}\nDay {day_value}" if day_value else str(day_num)
+                day_label = CalendarLabel(text=day_text, font_size=20)
+
+                # Highlight current day in red
+                if month == date.month and day_num and str(int(float(monthslice.iloc[0][i + 1]))) == str(date.day):
+                    day_label.color = get_color_from_hex('#FF0000')
+
+            self.calendar_content.add_widget(day_label)
+
+        # Update container
         self.calendarholder.add_widget(self.calendar_content)
-        self.calendarholder.remove_widget(self.baton)
+        if self.baton in self.calendarholder.children:
+            self.calendarholder.remove_widget(self.baton)
         self.calendarholder.add_widget(self.baton)
 
-        # Update baton button text
+        # Update month name and popup
         month_name = datetime.date(1900, month, 1).strftime('%B')
         self.baton.text = f"Viewing: {month_name}"
 
-        # Create or update the popup
         if not hasattr(self, 'monthdisplay'):
             self.monthdisplay = Popup(
                 title=f'Calendar for {month_name}',
@@ -163,30 +181,22 @@ class testGrid(Screen):
             self.monthdisplay.content = self.calendarholder
 
     def create_month_dropdown(self):
-        """Create dropdown menu for school year months"""
+        """Create month selection dropdown."""
         self.month_dropdown = DropDown()
-
-        # School year months: September (9) to December (12), then January (1) to June (6)
-        school_year_months = list(range(9, 13)) + list(range(1, 7))
-
-        for month_num in school_year_months:
+        for month_num in [*range(9, 13), *range(1, 7)]:
             month_name = datetime.date(1900, month_num, 1).strftime('%B')
-            btn = Button(text=month_name, size_hint_y=None, height=50)
+            btn = Button(text=month_name, size_hint_y=None, height=50, background_color=(0.7, 0.7, 0.7, 1))
             btn.bind(on_release=lambda btn, m=month_num: self.select_month(m))
             self.month_dropdown.add_widget(btn)
-
-        # Bind the dropdown to the baton button
         self.baton.bind(on_release=self.month_dropdown.open)
 
     def select_month(self, month_num):
-        """Handle month selection from dropdown"""
+        """Handle month selection."""
         self.month_dropdown.dismiss()
         self.create_calendar_popup(month_num)
-        # Re-open the popup to show the updated calendar
         self.monthdisplay.open()
 
     def get_month_data(self, month):
-        """Get month data from spreadsheet"""
         df = pd.read_csv(
             'https://docs.google.com/spreadsheets/d/e/2PACX-1vSEmrxJzhnV_wvnd2GkiyuVoBviY8kZOhGhBZd7EsraGpzn-9wmCycgWZXAr8tYXSJiBM2GQ-jeLvIt/pub?gid=0&single=true&output=csv',
             dtype={"MONTH": np.str_})
@@ -194,7 +204,6 @@ class testGrid(Screen):
         return df.iloc[rowseries[0]]
 
     def get_day_data(self, month):
-        """Get day data from spreadsheet"""
         df = pd.read_csv(
             'https://docs.google.com/spreadsheets/d/e/2PACX-1vSEmrxJzhnV_wvnd2GkiyuVoBviY8kZOhGhBZd7EsraGpzn-9wmCycgWZXAr8tYXSJiBM2GQ-jeLvIt/pub?gid=0&single=true&output=csv',
             dtype={"MONTH": np.str_})
@@ -203,10 +212,6 @@ class testGrid(Screen):
 
 
 class MyApp(App):
-    """
-    App builder
-    """
-
     def build(self):
         sm = ScreenManager()
         sm.add_widget(testGrid(name='test'))
