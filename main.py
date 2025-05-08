@@ -30,54 +30,37 @@ kv_file = Builder.load_string("""
 <testGrid>:
     cols: 1
     rows: 1
-    BoxLayout:
-        orientation: 'vertical'
-        padding: 10
-        spacing: 10
+    GridLayout:
+        cols: 2
+        padding: 50
+        spacing: 25
 
-        GridLayout:  # 2x layout for datenow, daynow, textbox, placeholder
-            cols: 2
-            rows: 2
-            size_hint_y: None
-            height: 200
-
-            Label:
-                id: datenow
-                text: "The date today is \\n"
-            Label:
-                id: daynow
-                text: "Today is: day "
-            Label:
-                text: "Text Box:" # Changed from Label
-            Label:
-                text: "Placeholder"
-
-        GridLayout: # Calendar
-            id: calendarholder
-            cols: 5
-            rows: 8
-            size_hint_y: None
-            height: 400
-
-        BoxLayout: # Button at the bottom
+        Label:
+            id: datenow
+            text: "The date today is \\n"
+        Label:
+            id: daynow
+            text: "Today is: day "
+        Label:
+            text: "Text Box:" # Changed from Label
+        Label:
+            text: "Placeholder"
+        Button:
+            id: calbutton
+            text: "click here"
+            size_hint_x: 1
             size_hint_y: None
             height: 50
-            Button:
-                id: calbutton
-                text: "click here"
-                size_hint_x: 1
-                size_hint_y: None
-                height: 50
+        #Label:
+        #    text: "test"
+        #GridLayout: # Calendar display holder
+        #    id: calendarholder
+        #    cols: 1
+        #    rows: 2
+        #    size_hint_y: None
+        #    height: 400
 
-        GridLayout: # bottom placeholders
-            cols: 2
-            rows: 1
-            size_hint_y: None
-            height: 50
-            Label:
-                text: "Placeholder"
-            Label:
-                text: "Placeholder"
+            
 """)
 
 
@@ -89,19 +72,21 @@ def fetchDay():
     """
     global df
     global monthslice
-    global slice2
+    global dayslice
     df = pd.read_csv(
         'https://docs.google.com/spreadsheets/d/e/2PACX-1vSEmrxJzhnV_wvnd2GkiyuVoBviY8kZOhGhBZd7EsraGpzn-9wmCycgWZXAr8tYXSJiBM2GQ-jeLvIt/pub?gid=0&single=true&output=csv',
         dtype={"MONTH": np.str_})
     print(df)
     rowseries = np.where(df["MONTH"] == str(date.month))
-    print(rowseries)
-    monthslice = df[df["MONTH"] == str(date.month)]
-    slice2 = df.iloc[rowseries[0] + 1]
+    print(f"rowseries:{rowseries}")
+    #monthslice = df[df["MONTH"] == str(date.month)]
+    monthslice = df.iloc[rowseries[0]]
+    dayslice = df.iloc[rowseries[0] + 1]
     print(monthslice)
+    print(dayslice)
     columnseries = np.where(
         monthslice.astype(np.str_) == str(date.day))
-    print(columnseries)
+    print(f"columnseries: {columnseries}")
     if columnseries[0].size > 0 and columnseries[1].size > 0: #check to avoid error if no match
         abcdef = rowseries[0][0], columnseries[1][0]
         print(abcdef)
@@ -132,18 +117,23 @@ class testGrid(Screen):
             calendar_popup_content.add_widget(Label(text=x))
 
         for i in range(len(monthslice.iloc[0]) - 1):
-            calendar_popup_content.add_widget(Label(text=f"{monthslice.iloc[0][i + 1]}\nDay {slice2.iloc[0][i + 1]}"))
-
-        self.monthdisplay = Popup(title=f'Test calendar popup for the month of {monthslice.iloc[0][0]}', content=calendar_popup_content, size_hint=(None, None), size=(1000, 500))
+            calendar_popup_content.add_widget(Label(text=f"{monthslice.iloc[0][i + 1]}\nDay {dayslice.iloc[0][i + 1]}")) #calendar days
+        #self.calendarholder = self.ids.calendarholder
+        self.calendarholder = GridLayout(cols=1, rows=2, size_hint_y=None, height=400)
+        self.calendarholder.add_widget(calendar_popup_content)
+        self.baton=Button(text="asdasd")
+        self.calendarholder.add_widget(self.baton)
+        self.monthdisplay = Popup(title=f'Test calendar popup for the month of {monthslice.iloc[0][0]}', content=self.calendarholder, size_hint=(None, None), size=(1000, 500))
         self.calbutton = self.ids.calbutton
-        self.displaydropdown = DropDown()
-        for i in range(3):
-            btn = Button(text=f"Button {i}", size_hint=(None, None), height=50)
-            btn.bind(on_release=lambda btn: self.displaydropdown.select(btn.text))
-            btn.bind(on_release=self.monthdisplay.open)
-            self.displaydropdown.add_widget(btn)
-        self.displaydropdown.bind(on_select=lambda instance, x: setattr(self.calbutton, "text", f"{x} selected"))
-        self.calbutton.bind(on_press=self.displaydropdown.open)
+        #self.displaydropdown = DropDown()
+        #for i in range(3):
+        #    btn = Button(text=f"Button {i}", size_hint=(None, None), height=50)
+        #    btn.bind(on_release=lambda btn: self.displaydropdown.select(btn.text))
+        #    btn.bind(on_release=self.monthdisplay.open)
+        #    self.displaydropdown.add_widget(btn)
+        #self.displaydropdown.bind(on_select=lambda instance, x: setattr(self.calbutton, "text", f"{x} selected"))
+        #self.calbutton.bind(on_press=self.displaydropdown.open)
+        self.calbutton.bind(on_release=self.monthdisplay.open)
 
 class MyApp(App):
     """
